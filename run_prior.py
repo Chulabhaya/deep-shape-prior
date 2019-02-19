@@ -9,7 +9,7 @@ from utility import add_noise, save_pc_as_obj
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # Set up initial point cloud data
-pc_name = 'bunny_0'
+pc_name = 'torus_0'
 data_path = 'data/' + pc_name + '.npy'
 
 clean_pc = np.load(data_path)
