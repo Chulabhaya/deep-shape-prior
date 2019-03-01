@@ -1,10 +1,11 @@
 import numpy as np
 import torch
 
-# Function for vectorized approach for calculating point cloud nearest neighbors
+# Very fast, very vectorized approach for calculating L2/Euclidean distance (when x and y are 
+# the same sizes)
 # Thanks to: https://discuss.pytorch.org/t/fastest-way-to-find-nearest-neighbor-for-a-set-of-points/5938/12
 def nn_dist_l2(x, y):
-    # Uses squared Euclidean distance
+    # Calculates distance as (x - y)^2
     xx = torch.bmm(x, x.transpose(2,1))
     yy = torch.bmm(y, y.transpose(2,1))
     xy = torch.bmm(x, y.transpose(2,1))
@@ -21,9 +22,11 @@ def nn_dist_l2(x, y):
 
     return chamfer_dist
 
-def nn_dist_l1(x, y):
-    # Uses Manhattan distance
-    differences = torch.abs(x.unsqueeze(2) - y)
+# Generalized function for calculating distance between points as
+# a form of Minkowski distance
+def nn_dist_lp(x, y, p):
+    # Calculates distance as (|x - y|)^(p)
+    differences = torch.pow(torch.abs(x.unsqueeze(2) - y.unsqueeze(1)), p)
     distances = torch.sum(differences, 3)
 
     minimums, _ = torch.min(distances, 1)
@@ -38,31 +41,28 @@ def chamfer_loss(x, y, subsampling_rate=1.0):
     x = x.view(x.size(0), x.size(1) * x.size(2), x.size(3))
     y = y.view(y.size(0), y.size(1) * y.size(2), y.size(3))
 
-    if subsampling_rate == 1.0:
-        # If rate is 1.0, that's equivalent to doing no subsampling
-        # Calculate individual Chamfer distances
-        dist1 = nn_dist_l1(x, y)
-        dist2 = nn_dist_l1(y, x)
-    else:
-        # Randomly subsample first point cloud
-        x_num_points = x.shape[1]
-        num_samples = int(round(subsampling_rate * x_num_points))
-        indices = np.arange(x_num_points).astype(int)
-        np.random.shuffle(indices)
-        indices = torch.from_numpy(indices[:num_samples])
-        x = x[:, indices, :]
+    # If sampling rate is 1.0, that's equivalent to doing no subsampling
+    # Randomly subsample first point cloud
+    x_num_points = x.shape[1]
+    num_samples = int(round(subsampling_rate * x_num_points))
+    indices = np.arange(x_num_points).astype(int)
+    np.random.shuffle(indices)
+    indices = torch.from_numpy(indices[:num_samples])
+    x = x[:, indices, :]
 
-        # Randomly subsample second point cloud
-        y_num_points = y.shape[1]
-        num_samples = int(round(subsampling_rate * y_num_points))
-        indices = np.arange(y_num_points).astype(int)
-        np.random.shuffle(indices)
-        indices = torch.from_numpy(indices[:num_samples])
-        y = y[:, indices, :]
+    # Randomly subsample second point cloud
+    y_num_points = y.shape[1]
+    num_samples = int(round(subsampling_rate * y_num_points))
+    indices = np.arange(y_num_points).astype(int)
+    np.random.shuffle(indices)
+    indices = torch.from_numpy(indices[:num_samples])
+    y = y[:, indices, :]
 
-        # Calculate individual Chamfer distances
-        dist1 = nn_dist_l1(x, y)
-        dist2 = nn_dist_l1(y, x)
+    # Calculate individual Chamfer distances
+    #dist1 = nn_dist_l2(x, y)
+    #dist2 = nn_dist_l2(y, x)
+    dist1 = nn_dist_lp(x, y, 2)
+    dist2 = nn_dist_lp(y, x, 2)
 
     dist_sum = dist1 + dist2
 
