@@ -1,5 +1,8 @@
 # Ignore 'output' folder 
 output/
 
+# Ignore 'test_results' folder
+test_results/
+
 # Ignore '__pycache__' folder
 __pycache__/

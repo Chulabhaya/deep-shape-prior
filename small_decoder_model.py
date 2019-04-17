@@ -23,24 +23,22 @@ class ConvBlock(nn.Module):
         
         return x
 
-class DeepShapePrior(nn.Module):
+class SmallDecoder(nn.Module):
     def __init__(self):
-        super(DeepShapePrior, self).__init__()
+        super(SmallDecoder, self).__init__()
 
         # This model combines several ConvBlocks such that an input
         # of dimension 256x4x4 (channels = 256, h = 4, w = 4)
-        # ends up as 3x128x128 (channels = 3, h = 128, w = 128)
+        # ends up as 3x32x32 (channels = 3, h = 32, w = 32)
         self.conv_block1 = ConvBlock(256, 128)
         self.conv_block2 = ConvBlock(128, 64)
         self.conv_block3 = ConvBlock(64, 32)
-        self.conv_block4 = ConvBlock(32, 16)
-        self.conv_block5 = ConvBlock(16, 3, 'tanh')
+        self.conv_block4 = ConvBlock(32, 3, 'tanh')
 
     def forward(self, x):
         x = self.conv_block1(x)
         x = self.conv_block2(x)
         x = self.conv_block3(x)
-        x = self.conv_block4(x)
-        x = self.conv_block5(x)
+        x = self.conv_block4(x)        
 
         return x
